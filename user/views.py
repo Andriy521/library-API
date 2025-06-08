@@ -10,10 +10,10 @@ from django.contrib.auth import get_user_model
 @api_view(['GET'])
 def api_root(request, format=None):
     return Response({
-        "register": reverse("register", request=request, format=format),
-        "token_obtain": reverse("token_obtain_pair", request=request, format=format),
-        "token_refresh": reverse("token_refresh", request=request, format=format),
-        "me": reverse("user_me", request=request, format=format),
+        "register": reverse("users:register", request=request, format=format),
+        "token_obtain": reverse("users:token_obtain_pair", request=request, format=format),
+        "token_refresh": reverse("users:token_refresh", request=request, format=format),
+        "me": reverse("users:user_me", request=request, format=format),
     })
 
 
