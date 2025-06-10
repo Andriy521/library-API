@@ -1,3 +1,5 @@
+from django.http import HttpResponse
+from django.urls import reverse
 from django.utils import timezone
 from rest_framework import viewsets, status
 from rest_framework.decorators import action
@@ -47,25 +49,29 @@ class BorrowingViewSet(viewsets.ModelViewSet):
 
         def create_stripe_session(amount, payment_type):
             session = stripe.checkout.Session.create(
-                payment_method_types=['card'],
+                payment_method_types=["card"],
                 line_items=[{
-                    'price_data': {
-                        'currency': 'usd',
-                        'product_data': {
-                            'name': f'{payment_type} for borrowing #{borrowing.id}',
+                    "price_data": {
+                        "currency": "usd",
+                        "product_data": {
+                            "name": f"{payment_type} for borrowing #{borrowing.id}",
                         },
-                        'unit_amount': int(amount * 100),
+                        "unit_amount": int(amount * 100),
                     },
-                    'quantity': 1,
+                    "quantity": 1,
                 }],
-                mode='payment',
-                success_url=request.build_absolute_uri('/payment-success/'),
-                cancel_url=request.build_absolute_uri('/payment-cancel/'),
+                mode="payment",
+                success_url = request.build_absolute_uri(
+                    reverse("payment_success")
+                ) + "?session_id={CHECKOUT_SESSION_ID}",
+                cancel_url = request.build_absolute_uri(
+                    reverse("payment-cancel")
+                ),
             )
             return session
 
         if payment_amount > 0:
-            session = create_stripe_session(payment_amount, 'Payment')
+            session = create_stripe_session(payment_amount, "Payment")
             Payment.objects.create(
                 borrowing=borrowing,
                 status=PaymentStatus.PENDING,
@@ -76,7 +82,7 @@ class BorrowingViewSet(viewsets.ModelViewSet):
             )
 
         if fine_amount > 0:
-            session = create_stripe_session(fine_amount, 'Fine')
+            session = create_stripe_session(fine_amount, "Fine")
             Payment.objects.create(
                 borrowing=borrowing,
                 status=PaymentStatus.PENDING,
@@ -105,3 +111,43 @@ class PaymentViewSet(viewsets.ReadOnlyModelViewSet):
             from rest_framework.response import Response
             return Response({"detail": "You do not have any payment"})
         return super().list(request, *args, **kwargs)
+
+def payment_success(request):
+    session_id = request.GET.get("session_id")
+
+    if not session_id:
+        return HttpResponse("Missing session_id", status=400)
+
+    try:
+        session = stripe.checkout.Session.retrieve(session_id)
+    except stripe.error.StripeError as e:
+        return HttpResponse(f"Stripe error: {str(e)}", status=400)
+
+    try:
+        payment = Payment.objects.get(session_id=session.id)
+    except Payment.DoesNotExist:
+        return HttpResponse("Payment not found.", status=404)
+
+    if session.payment_status == "paid" and payment.status != PaymentStatus.PAID:
+        payment.status = PaymentStatus.PAID
+        payment.save()
+
+    return HttpResponse("✅ Payment confirmed successfully!")
+
+def payment_cancel(request):
+    session_id = request.GET.get("session_id")
+
+    if not session_id:
+        return HttpResponse("Missing session_id", status=400)
+
+    try:
+        session = stripe.checkout.Session.retrieve(session_id)
+    except stripe.error.StripeError as e:
+        return HttpResponse(f"Stripe error: {str(e)}", status=400)
+
+    payment_exists = Payment.objects.filter(session_id=session_id).exists()
+
+    if payment_exists:
+        return HttpResponse("❌ Payment was cancelled. You can try again.")
+
+    return HttpResponse("⚠️ Payment session not found. Maybe it was never created.")
