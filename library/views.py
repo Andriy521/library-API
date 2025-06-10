@@ -3,10 +3,14 @@ from rest_framework import viewsets, status
 from rest_framework.decorators import action
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
-from rest_framework.views import APIView
+import stripe
+from library_service.settings import STRIPE_SECRET_KEY
 
 from .models import Book, Borrowing, Payment, PaymentStatus, PaymentType
 from .serializers import BookSerializer, BorrowingSerializer, PaymentSerializer
+
+
+stripe.api_key = STRIPE_SECRET_KEY
 
 
 class BookViewSet(viewsets.ModelViewSet):
@@ -27,7 +31,7 @@ class BorrowingViewSet(viewsets.ModelViewSet):
     def perform_create(self, serializer):
         serializer.save(user=self.request.user)
 
-    @action(detail=True, methods=["POST"])
+    @action(detail=True, methods=["POST", "GET"])
     def return_book(self, request, pk=None):
         borrowing = self.get_object()
 
@@ -41,25 +45,45 @@ class BorrowingViewSet(viewsets.ModelViewSet):
 
         payment_amount, fine_amount = borrowing.calculate_payment_amounts()
 
-        # PAYMENT
-        Payment.objects.create(
-            borrowing=borrowing,
-            status=PaymentStatus.PENDING,
-            type=PaymentType.PAYMENT,
-            money_to_pay=payment_amount,
-            session_url="https://example.com/payment",
-            session_id="fake-session-id"
-        )
+        def create_stripe_session(amount, payment_type):
+            session = stripe.checkout.Session.create(
+                payment_method_types=['card'],
+                line_items=[{
+                    'price_data': {
+                        'currency': 'usd',
+                        'product_data': {
+                            'name': f'{payment_type} for borrowing #{borrowing.id}',
+                        },
+                        'unit_amount': int(amount * 100),
+                    },
+                    'quantity': 1,
+                }],
+                mode='payment',
+                success_url=request.build_absolute_uri('/payment-success/'),
+                cancel_url=request.build_absolute_uri('/payment-cancel/'),
+            )
+            return session
 
-        # FINE
+        if payment_amount > 0:
+            session = create_stripe_session(payment_amount, 'Payment')
+            Payment.objects.create(
+                borrowing=borrowing,
+                status=PaymentStatus.PENDING,
+                type=PaymentType.PAYMENT,
+                money_to_pay=payment_amount,
+                session_url=session.url,
+                session_id=session.id
+            )
+
         if fine_amount > 0:
+            session = create_stripe_session(fine_amount, 'Fine')
             Payment.objects.create(
                 borrowing=borrowing,
                 status=PaymentStatus.PENDING,
                 type=PaymentType.FINE,
                 money_to_pay=fine_amount,
-                session_url="https://example.com/payment",
-                session_id="fake-session-id"
+                session_url=session.url,
+                session_id=session.id
             )
 
         return Response({"detail": "Book returned. Payments created."}, status=status.HTTP_200_OK)
