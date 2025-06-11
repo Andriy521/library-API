@@ -10,7 +10,8 @@ class BookSerializer(serializers.ModelSerializer):
 class BorrowingSerializer(serializers.ModelSerializer):
     class Meta:
         model = Borrowing
-        fields = "__all__"
+        fields = ["id", "borrow_date", "expected_return_date", "book", "user"]
+        read_only_fields = ["id", "borrow_date"]
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
