@@ -12,7 +12,6 @@ from .models import Book, Borrowing, Payment, PaymentStatus, PaymentType
 from .serializers import BookSerializer, BorrowingSerializer, PaymentSerializer
 from .utils.telegram import send_telegram_message
 
-
 stripe.api_key = STRIPE_SECRET_KEY
 
 
