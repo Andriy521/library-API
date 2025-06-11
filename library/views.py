@@ -10,6 +10,7 @@ from library_service.settings import STRIPE_SECRET_KEY
 
 from .models import Book, Borrowing, Payment, PaymentStatus, PaymentType
 from .serializers import BookSerializer, BorrowingSerializer, PaymentSerializer
+from .utils.telegram import send_telegram_message
 
 
 stripe.api_key = STRIPE_SECRET_KEY
@@ -31,7 +32,16 @@ class BorrowingViewSet(viewsets.ModelViewSet):
         return Borrowing.objects.filter(user=user)
 
     def perform_create(self, serializer):
-        serializer.save(user=self.request.user)
+        borrowing = serializer.save(user=self.request.user)
+
+        message = (
+            f"📚 New Borrowing Created:\n"
+            f"User: {borrowing.user.email}\n"
+            f"Book: {borrowing.book.title}\n"
+            f"Borrow date: {borrowing.borrow_date}\n"
+            f"Expected return: {borrowing.expected_return_date}"
+        )
+        send_telegram_message(message)
 
     @action(detail=True, methods=["POST", "GET"])
     def return_book(self, request, pk=None):
