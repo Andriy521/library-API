@@ -71,10 +71,10 @@ class BorrowingViewSet(viewsets.ModelViewSet):
                 }],
                 mode="payment",
                 success_url = request.build_absolute_uri(
-                    reverse("payment_success")
+                    reverse("library:payment_success")
                 ) + "?session_id={CHECKOUT_SESSION_ID}",
                 cancel_url = request.build_absolute_uri(
-                    reverse("payment-cancel")
+                    reverse("library:payment_cancel")
                 ),
             )
             return session
