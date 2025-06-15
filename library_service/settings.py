@@ -50,6 +50,7 @@ INSTALLED_APPS = [
     'django_celery_beat',
     'user',
     'library',
+    'drf_spectacular',
 ]
 
 MIDDLEWARE = [
@@ -144,6 +145,7 @@ REST_FRAMEWORK = {
     'DEFAULT_AUTHENTICATION_CLASSES': (
         'rest_framework_simplejwt.authentication.JWTAuthentication',
     ),
+    'DEFAULT_SCHEMA_CLASS': 'drf_spectacular.openapi.AutoSchema',
 }
 
 SIMPLE_JWT = {
@@ -166,4 +168,11 @@ CELERY_BEAT_SCHEDULE = {
         "schedule": crontab(hour=9, minute=00),
         "options": {"expires": 60 * 60},
     },
+}
+
+SPECTACULAR_SETTINGS = {
+    'TITLE': 'Library API',
+    'DESCRIPTION': 'API for managing users, books, borrowings and payments.',
+    'VERSION': '1.0.0',
+    'SERVE_INCLUDE_SCHEMA': False,
 }
