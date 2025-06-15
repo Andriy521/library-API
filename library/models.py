@@ -46,12 +46,14 @@ class Borrowing(models.Model):
         payment_amount = Decimal(days_borrowed * self.book.daily_fee)
 
         fine_amount = Decimal(0)
-        if self.actual_return_date and self.actual_return_date > self.expected_return_date:
+        if (
+            self.actual_return_date
+            and self.actual_return_date > self.expected_return_date
+        ):
             late_days = (self.actual_return_date - self.expected_return_date).days
             fine_amount = Decimal(late_days * self.book.daily_fee * 2)
 
         return payment_amount, fine_amount
-
 
 
 class Payment(models.Model):
@@ -60,14 +62,9 @@ class Payment(models.Model):
         choices=PaymentStatus.choices,
         default=PaymentStatus.PENDING,
     )
-    type = models.CharField(
-        max_length=10,
-        choices=PaymentType.choices
-    )
+    type = models.CharField(max_length=10, choices=PaymentType.choices)
     borrowing = models.ForeignKey(
-        Borrowing,
-        on_delete=models.CASCADE,
-        related_name="payments"
+        Borrowing, on_delete=models.CASCADE, related_name="payments"
     )
     session_url = models.URLField(max_length=1000, null=True, blank=True)
     session_id = models.CharField(max_length=255, null=True, blank=True)

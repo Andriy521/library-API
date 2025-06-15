@@ -6,28 +6,32 @@ from django.db import migrations, models
 class Migration(migrations.Migration):
 
     dependencies = [
-        ('library', '0002_initial'),
+        ("library", "0002_initial"),
     ]
 
     operations = [
         migrations.RemoveField(
-            model_name='payment',
-            name='money_for_book',
+            model_name="payment",
+            name="money_for_book",
         ),
         migrations.RemoveField(
-            model_name='payment',
-            name='money_for_late',
+            model_name="payment",
+            name="money_for_late",
         ),
         migrations.AddField(
-            model_name='payment',
-            name='money_to_pay',
+            model_name="payment",
+            name="money_to_pay",
             field=models.DecimalField(decimal_places=2, default=0.0, max_digits=8),
             preserve_default=False,
         ),
         migrations.AddField(
-            model_name='payment',
-            name='type',
-            field=models.CharField(choices=[('PAYMENT', 'Payment'), ('FINE', 'Fine')], default=1, max_length=10),
+            model_name="payment",
+            name="type",
+            field=models.CharField(
+                choices=[("PAYMENT", "Payment"), ("FINE", "Fine")],
+                default=1,
+                max_length=10,
+            ),
             preserve_default=False,
         ),
     ]

@@ -7,6 +7,7 @@ class BookSerializer(serializers.ModelSerializer):
         model = Book
         fields = "__all__"
 
+
 class BorrowingSerializer(serializers.ModelSerializer):
     class Meta:
         model = Borrowing

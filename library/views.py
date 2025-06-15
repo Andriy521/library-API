@@ -19,6 +19,7 @@ class BookViewSet(viewsets.ModelViewSet):
     queryset = Book.objects.all()
     serializer_class = BookSerializer
 
+
 class BorrowingViewSet(viewsets.ModelViewSet):
     queryset = Borrowing.objects.all()
     serializer_class = BorrowingSerializer
@@ -47,7 +48,9 @@ class BorrowingViewSet(viewsets.ModelViewSet):
         borrowing = self.get_object()
 
         if borrowing.actual_return_date:
-            return Response({"detail": "This borrowing is already returned."}, status=400)
+            return Response(
+                {"detail": "This borrowing is already returned."}, status=400
+            )
 
         borrowing.actual_return_date = timezone.now().date()
         borrowing.book.inventory += 1
@@ -59,21 +62,24 @@ class BorrowingViewSet(viewsets.ModelViewSet):
         def create_stripe_session(amount, payment_type):
             session = stripe.checkout.Session.create(
                 payment_method_types=["card"],
-                line_items=[{
-                    "price_data": {
-                        "currency": "usd",
-                        "product_data": {
-                            "name": f"{payment_type} for borrowing #{borrowing.id}",
+                line_items=[
+                    {
+                        "price_data": {
+                            "currency": "usd",
+                            "product_data": {
+                                "name": f"{payment_type} for borrowing #{borrowing.id}",
+                            },
+                            "unit_amount": int(amount * 100),
                         },
-                        "unit_amount": int(amount * 100),
-                    },
-                    "quantity": 1,
-                }],
+                        "quantity": 1,
+                    }
+                ],
                 mode="payment",
-                success_url = request.build_absolute_uri(
+                success_url=request.build_absolute_uri(
                     reverse("library:payment_success")
-                ) + "?session_id={CHECKOUT_SESSION_ID}",
-                cancel_url = request.build_absolute_uri(
+                )
+                + "?session_id={CHECKOUT_SESSION_ID}",
+                cancel_url=request.build_absolute_uri(
                     reverse("library:payment_cancel")
                 ),
             )
@@ -87,7 +93,7 @@ class BorrowingViewSet(viewsets.ModelViewSet):
                 type=PaymentType.PAYMENT,
                 money_to_pay=payment_amount,
                 session_url=session.url,
-                session_id=session.id
+                session_id=session.id,
             )
 
         if fine_amount > 0:
@@ -98,10 +104,12 @@ class BorrowingViewSet(viewsets.ModelViewSet):
                 type=PaymentType.FINE,
                 money_to_pay=fine_amount,
                 session_url=session.url,
-                session_id=session.id
+                session_id=session.id,
             )
 
-        return Response({"detail": "Book returned. Payments created."}, status=status.HTTP_200_OK)
+        return Response(
+            {"detail": "Book returned. Payments created."}, status=status.HTTP_200_OK
+        )
 
 
 class PaymentViewSet(viewsets.ReadOnlyModelViewSet):
@@ -118,8 +126,10 @@ class PaymentViewSet(viewsets.ReadOnlyModelViewSet):
         queryset = self.get_queryset()
         if not queryset.exists() and not request.user.is_staff:
             from rest_framework.response import Response
+
             return Response({"detail": "You do not have any payment"})
         return super().list(request, *args, **kwargs)
+
 
 def payment_success(request):
     session_id = request.GET.get("session_id")
@@ -142,6 +152,7 @@ def payment_success(request):
         payment.save()
 
     return HttpResponse("✅ Payment confirmed successfully!")
+
 
 def payment_cancel(request):
     session_id = request.GET.get("session_id")
