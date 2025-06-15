@@ -9,8 +9,7 @@ def notify_borrowings_ending_tomorrow():
 
     tomorrow = now().date() + timedelta(days=1)
     borrowings = Borrowing.objects.filter(
-        expected_return_date=tomorrow,
-        actual_return_date__isnull=True
+        expected_return_date=tomorrow, actual_return_date__isnull=True
     )
 
     if not borrowings.exists():
@@ -20,7 +19,7 @@ def notify_borrowings_ending_tomorrow():
 
     for borrow in borrowings:
         message += (
-            f"— Book: \"{borrow.book.title}\"\n"
+            f'— Book: "{borrow.book.title}"\n'
             f"  User: {borrow.user.email}\n"
             f"  Borrow date: {borrow.borrow_date}\n\n"
         )

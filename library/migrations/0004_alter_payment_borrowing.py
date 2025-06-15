@@ -7,13 +7,17 @@ from django.db import migrations, models
 class Migration(migrations.Migration):
 
     dependencies = [
-        ('library', '0003_remove_payment_money_for_book_and_more'),
+        ("library", "0003_remove_payment_money_for_book_and_more"),
     ]
 
     operations = [
         migrations.AlterField(
-            model_name='payment',
-            name='borrowing',
-            field=models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, related_name='payments', to='library.borrowing'),
+            model_name="payment",
+            name="borrowing",
+            field=models.ForeignKey(
+                on_delete=django.db.models.deletion.CASCADE,
+                related_name="payments",
+                to="library.borrowing",
+            ),
         ),
     ]
